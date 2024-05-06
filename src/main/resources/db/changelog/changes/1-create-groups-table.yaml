@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: create_groups_table
+      author: literandltx
+      changes:
+        - createTable:
+            tableName: groups
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: create_time
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false

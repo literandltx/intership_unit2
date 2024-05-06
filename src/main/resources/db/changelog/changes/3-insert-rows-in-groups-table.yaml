@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: literandltx
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO groups (title, create_time) VALUES ('group_title1', CURRENT_TIMESTAMP);
+              INSERT INTO groups (title, create_time) VALUES ('group_title2', CURRENT_TIMESTAMP);
+              INSERT INTO groups (title, create_time) VALUES ('group_title3', CURRENT_TIMESTAMP);
