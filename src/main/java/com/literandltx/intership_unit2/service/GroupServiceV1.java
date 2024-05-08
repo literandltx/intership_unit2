@@ -44,9 +44,7 @@ public class GroupServiceV1 implements GroupService {
         final Group model = groupMapper.toModel(request);
         model.setId(id);
 
-        groupRepository.save(model);
-
-        return null;
+        return groupMapper.toDto(groupRepository.save(model));
     }
 
     @Override
@@ -54,7 +52,7 @@ public class GroupServiceV1 implements GroupService {
             final Long id
     ) {
         if (!groupRepository.existsById(id)) {
-            throw new EntityNotFoundException("Cannot find cartItem by id: " + id);
+            throw new EntityNotFoundException("Cannot find group by id: " + id);
         }
 
         groupRepository.deleteById(id);
