@@ -3,46 +3,28 @@
     "title": "title1",
     "description": "description1",
     "rank": 9.9,
-    "groupId": 1
-  },
-  {
-    "title": "title0",
-    "description": "description0",
-    "rank": 9.9
-  },
-  {
-    "description": "_description_",
-    "rank": 9.9,
-    "groupId": 3
+    "groupId": 1,
+    "labels": "label1, label2"
   },
   {
     "title": "title2",
-    "description": "description2",
-    "rank": 9.2,
-    "groupId": 1
+    "description": "description",
+    "rank": 8.8,
+    "groupId": 2,
+    "labels": "label1"
   },
   {
     "title": "title3",
-    "description": "description3",
-    "rank": 3.4,
-    "groupId": 2
+    "description": "description",
+    "rank": 7.7,
+    "groupId": 3,
+    "labels": "label1, label2, label3"
   },
   {
     "title": "title4",
-    "description": "description4",
-    "rank": 6.1,
-    "groupId": 3
-  },
-  {
-    "title": "title5",
-    "description": "description5",
-    "rank": 7.8,
-    "groupId": 1
-  },
-  {
-    "title": "title6",
-    "description": "description6",
-    "rank": 10,
-    "groupId": 2
+    "description": "description",
+    "rank": 6.6,
+    "groupId": 1,
+    "labels": "label1"
   }
-]
+]   

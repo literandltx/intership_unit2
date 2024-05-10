@@ -8,10 +8,13 @@ import com.literandltx.intership_unit2.dto.cartitem.*;
 import com.literandltx.intership_unit2.dto.cartitem.search.NumberRangeRequest;
 import com.literandltx.intership_unit2.exception.UnsupportedFileExtensionException;
 import com.literandltx.intership_unit2.mapper.CartItemMapper;
+import com.literandltx.intership_unit2.mapper.LabelMapper;
 import com.literandltx.intership_unit2.model.CartItem;
 import com.literandltx.intership_unit2.model.Group;
+import com.literandltx.intership_unit2.model.Label;
 import com.literandltx.intership_unit2.repository.CartItemRepository;
 import com.literandltx.intership_unit2.repository.GroupRepository;
+import com.literandltx.intership_unit2.repository.LabelRepository;
 import com.literandltx.intership_unit2.repository.specification.CartItemSpecificationBuilder;
 import com.opencsv.CSVWriter;
 import com.opencsv.exceptions.CsvDataTypeMismatchException;
@@ -31,7 +34,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.net.URLConnection;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -49,6 +57,7 @@ public class CartItemServiceV1 implements CartItemService {
 
     private final CartItemRepository cartItemRepository;
     private final GroupRepository groupRepository;
+    private final LabelRepository labelRepository;
     private final CartItemSpecificationBuilder itemSpecificationBuilder;
     private final CartItemMapper cartItemMapper;
     private final ObjectMapper objectMapper;
@@ -143,10 +152,7 @@ public class CartItemServiceV1 implements CartItemService {
         final List<Long> groupIds = searchRequest.getGroupIds();
 
         final Specification<CartItem> build = itemSpecificationBuilder.build(titles, description, rank, groupIds);
-
-        final List<CartItemResponse> list = cartItemRepository.findAll(build).stream()
-                .map(cartItemMapper::toDto)
-                .toList();
+        final List<CartItem> list = cartItemRepository.findAll(build);
 
         File csvFile = null;
         try {
@@ -159,6 +165,108 @@ public class CartItemServiceV1 implements CartItemService {
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<UploadResponse> upload(
+            final MultipartFile multipartFile
+    ) {
+        validateFile(multipartFile);
+
+        final File file = toFile(multipartFile);
+        int failed = 0;
+        int success = 0;
+
+        try (final JsonParser parser = factory.createParser(file)) {
+            if (parser.nextToken() == JsonToken.START_ARRAY) {
+                while (parser.nextToken() != JsonToken.END_ARRAY) {
+                    if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
+                        final UploadCartItemRequest uploadRequest = objectMapper.readValue(parser, UploadCartItemRequest.class);
+                        final CartItemRequest request = cartItemMapper.toDto(uploadRequest);
+
+                        if (validateCartItem(uploadRequest)) {
+                            final CartItem saved = _save(request);
+                            Arrays.stream(uploadRequest.getLabels().split(",")).forEach(i -> {
+                                final Label label = new Label();
+                                label.setName(i);
+                                label.setCartItem(saved);
+                                labelRepository.save(label);
+                            });
+
+                            success++;
+                        } else {
+                            failed++;
+                        }
+                    }
+                }
+            }
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            deleteFile(file);
+        }
+
+        return ResponseEntity.ok().body(new UploadResponse(success, failed));
+    }
+
+    private CartItem _save(
+            final CartItemRequest request
+    ) {
+        final Group group = groupRepository.findById(request.getGroupId()).orElseThrow(
+                () -> new EntityNotFoundException("Cannot find group by id: " + request.getGroupId()));
+        final CartItem model = cartItemMapper.toModel(request);
+        model.getGroup().setTitle(group.getTitle());
+        model.getGroup().setId(group.getId());
+
+        return cartItemRepository.save(model);
+    }
+
+    private File toCsvFile(
+            final List<CartItem> list
+    ) throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
+        final String fileName = "report.csv";
+
+        try (final Writer writer = new FileWriter(fileName)) {
+            final CSVWriter csvWriter = new CSVWriter(writer);
+            csvWriter.writeNext(new String[]{"id", "title", "description", "rank", "group_id", "group_title", "labels"});
+
+            for (final CartItem item : list) {
+                csvWriter.writeNext(new String[]{
+                        item.getId().toString(),
+                        item.getTitle(),
+                        item.getDescription(),
+                        item.getRank().toString(),
+                        item.getGroup().getId().toString(),
+                        item.getGroup().getTitle(),
+                        item.getLabels().stream()
+                                .map(Label::getName)
+                                .collect(Collectors.joining(","))
+                });
+            }
+        }
+
+        return new File(fileName);
+    }
+
+    private boolean validateCartItem(
+            final UploadCartItemRequest request
+    ) {
+        return request.getTitle() != null && request.getGroupId() != null;
+    }
+
+    private static File toFile(
+            final MultipartFile multipartFile
+    ) {
+        File file;
+
+        try {
+            file = new File(tempFileLocation);
+            writeToFile(file, multipartFile.getBytes());
+        } catch (final IOException e) {
+            throw new RuntimeException("Error creating or writing to file: " + tempFileLocation, e);
+        }
+
+        return file;
     }
 
     private void downloadFileResource(
@@ -180,86 +288,6 @@ public class CartItemServiceV1 implements CartItemService {
 
             FileCopyUtils.copy(inputStream, response.getOutputStream());
         }
-    }
-
-    @Override
-    public ResponseEntity<UploadResponse> upload(
-            final MultipartFile multipartFile
-    ) {
-        validateFile(multipartFile);
-
-        final File file = toFile(multipartFile);
-        int failed = 0;
-        int success = 0;
-
-        try (final JsonParser parser = factory.createParser(file)) {
-            if (parser.nextToken() == JsonToken.START_ARRAY) {
-                while (parser.nextToken() != JsonToken.END_ARRAY) {
-                    if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
-                        final CartItemRequest request = objectMapper.readValue(parser, CartItemRequest.class);
-
-                        if (validateCartItem(request)) {
-                            save(request);
-                            success++;
-                        } else {
-                            failed++;
-                        }
-                    }
-                }
-            }
-        } catch (final IOException e) {
-            throw new RuntimeException(e);
-        } finally {
-            deleteFile(file);
-        }
-
-        return ResponseEntity.ok().body(new UploadResponse(success, failed));
-    }
-
-    private File toCsvFile(
-            final List<CartItemResponse> list
-    ) throws IOException, CsvRequiredFieldEmptyException, CsvDataTypeMismatchException {
-        final String fileName = "report.csv";
-
-        try (final Writer writer = new FileWriter(fileName)) {
-            final CSVWriter csvWriter = new CSVWriter(writer);
-            csvWriter.writeNext(new String[]{"id", "title", "description", "rank", "group_id", "group_title"});
-
-            for (final CartItemResponse item : list) {
-                csvWriter.writeNext(new String[]{
-                        item.getId().toString(),
-                        item.getTitle(),
-                        item.getDescription(),
-                        item.getRank().toString(),
-                        item.getGroup().getId().toString(),
-                        item.getGroup().getTitle()
-                });
-            }
-        }
-
-        return new File(fileName);
-    }
-
-
-    private boolean validateCartItem(
-            final CartItemRequest request
-    ) {
-        return request.getTitle() != null && request.getGroupId() != null;
-    }
-
-    private static File toFile(
-            final MultipartFile multipartFile
-    ) {
-        File file;
-
-        try {
-            file = new File(tempFileLocation);
-            writeToFile(file, multipartFile.getBytes());
-        } catch (final IOException e) {
-            throw new RuntimeException("Error creating or writing to file: " + tempFileLocation, e);
-        }
-
-        return file;
     }
 
     private static void writeToFile(

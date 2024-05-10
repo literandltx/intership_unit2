@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class CartItemRequest {
+public class UploadCartItemRequest {
     @NotBlank
     private String title;
 
@@ -15,4 +15,6 @@ public class CartItemRequest {
 
     @NotNull
     private Long groupId;
+
+    private String labels;
 }

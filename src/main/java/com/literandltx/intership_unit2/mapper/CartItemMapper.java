@@ -3,6 +3,7 @@ package com.literandltx.intership_unit2.mapper;
 import com.literandltx.intership_unit2.config.MapperConfig;
 import com.literandltx.intership_unit2.dto.cartitem.CartItemRequest;
 import com.literandltx.intership_unit2.dto.cartitem.CartItemResponse;
+import com.literandltx.intership_unit2.dto.cartitem.UploadCartItemRequest;
 import com.literandltx.intership_unit2.model.CartItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -11,6 +12,10 @@ import org.mapstruct.Mapping;
 public interface CartItemMapper {
     CartItemResponse toDto(
             final CartItem model
+    );
+
+    CartItemRequest toDto(
+            final UploadCartItemRequest request
     );
 
     @Mapping(target = "group.id", ignore = true)

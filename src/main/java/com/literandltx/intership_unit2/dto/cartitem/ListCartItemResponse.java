@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-
 public class ListCartItemResponse {
     private List<CartItemResponse> list = new ArrayList<>();
     private Integer totalPages;
