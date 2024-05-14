@@ -51,26 +51,67 @@ The cart items management system domain encompasses the following entities and t
 
 ### Cart Item Controller (CartItemControllerV1)
 
-- `POST /v1/items`: Creates a new cart item.
-- `PUT /v1/items`: Updates a cart item by ID.
-- `DELETE /v1/items`: Deletes a cart item by ID.
-- `GET /v1/items`: Retrieves a cart item by ID.
-- `GET /v1/items/_list`: Retrieves a paginated list of all existing cart items.
-- `POST /v1/items/upload`: Uploads a file containing cart item data.
-- `POST /v1/items/_report`: Generates and downloads a report based on search criteria.
-
+- `POST /api/v1/items`: Creates a new cart item.
+```json
+{
+    "title": "save_title",
+    "description": "description1",
+    "rank": 8.8,
+    "groupId": 2
+}
+```
+- `PUT /api/v1/items`: Updates a cart item by ID.
+- `DELETE /api/v1/items`: Deletes a cart item by ID.
+- `GET /api/v1/items`: Retrieves a cart item by ID.
+- `GET /api/v1/items/_list?size=10&page=0`: Retrieves a paginated list of all existing cart items. Size and page are optional
+- `POST /api/v1/items/upload`: Uploads a file containing cart item data.
+- `POST /api/v1/items/_report`: Generates and downloads a report based on search criteria.
+All/some of the filtering fields can be missing
+```json
+{
+  "titles": ["title1", "title2"],
+  "description": ["description1", "description2"],
+  "rank": {
+    "min": 1.0,
+    "max": 10.0
+  },
+  "groupIds": [1, 2, 3]
+}
+```
 ### Label Controller (LabelControllerV1)
 - `GET /api/v1/labels`: Retrieves a list of all existing Label records.
-- `POST /api/v1/labels`: Creates a new Label  record, ensuring the uniqueness of names.
-- `PUT /api/v1/labels?id=_id`: Updates a Label record by ID, considering the uniqueness of names.
+- `POST /api/v1/labels`: Creates a new Label record.
+```json
+{
+    "cartItemId": 1,
+    "name": "label1"
+}
+```
+- `PUT /api/v1/labels?id=label1_id`: Updates a Label record by ID, considering the uniqueness of names.
+```json
+{
+    "name": "updated_label1"
+}
+```
 - `DELETE /api/v1/labels?id=_id`: Deletes a Label record by ID.
 
 ### Group Controller (GroupControllerV1)
 
-- `POST /v1/groups`: Creates a new group.
-- `GET /v1/groups`: Retrieves a list of all existing groups.
-- `PUT /v1/groups`: Updates a group by ID.
-- `DELETE /v1/groups`: Deletes a group by ID.
+- `POST /api/v1/groups`: Creates a new group.
+```json
+{
+    "title": "new_title"
+}
+```
+- `GET /api/v1/groups`: Retrieves a list of all existing groups.
+- `PUT /api/v1/groups`: Updates a group by ID.
+- `POST /api/v1/groups`: Creates a new group.
+```json
+{
+    "title": "updated_title"
+}
+```
+- `DELETE /api/v1/groups`: Deletes a group by ID.
 
 ## Request Example
 
@@ -106,4 +147,22 @@ Example of input file content for: `/api/v1/items/upload`
     "labels": "label1"
   }
 ]   
+```
+
+## Liquibase inserted entities
+```json
+[
+  {
+    "id": 1,
+    "title": "group_title1"
+  },
+  {
+    "id": 2,
+    "title": "group_title2"
+  },
+  {
+    "id": 3,
+    "title": "group_title3"
+  }
+]
 ```
